@@ -1,0 +1,62 @@
+{
+  "product": {
+    "name": "Veilance Bucket Hat",
+    "brand": "Arc'teryx",
+    "line": "Veilance",
+    "color": "Carmine",
+    "currencyDisplay": "CAD",
+    "notes": [
+      "This tracker focuses on the Veilance Bucket Hat in the Carmine colour.",
+      "Historical points may be sourced from Web Archive snapshots when available.",
+      "Prices are converted to CAD using historical FX rates (USD→CAD) for the capture date."
+    ]
+  },
+  "sources": [
+    {
+      "id": "chcm",
+      "name": "C'H'C'M'",
+      "url": "https://chcmshop.com/collections/hats/products/veilance-bucket-hat-carmine",
+      "currency": "USD"
+    }
+  ],
+  "series": [
+    {
+      "date": "2026-02-01",
+      "kind": "sale",
+      "price": {
+        "amount": 157.5,
+        "currency": "USD"
+      },
+      "priceCad": {
+        "amount": 213.02,
+        "fx": {
+          "pair": "USD/CAD",
+          "rate": 1.3525,
+          "source": "frankfurter.app",
+          "date": "2026-02-01"
+        }
+      },
+      "sourceId": "chcm",
+      "url": "https://chcmshop.com/collections/hats/products/veilance-bucket-hat-carmine"
+    },
+    {
+      "date": "2026-02-01",
+      "kind": "msrp",
+      "price": {
+        "amount": 225,
+        "currency": "USD"
+      },
+      "priceCad": {
+        "amount": 304.31,
+        "fx": {
+          "pair": "USD/CAD",
+          "rate": 1.3525,
+          "source": "frankfurter.app",
+          "date": "2026-02-01"
+        }
+      },
+      "sourceId": "chcm",
+      "url": "https://chcmshop.com/collections/hats/products/veilance-bucket-hat-carmine"
+    }
+  ]
+}
