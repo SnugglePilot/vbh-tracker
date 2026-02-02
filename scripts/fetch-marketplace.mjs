@@ -61,48 +61,99 @@ function parseGrailedPrices(html) {
   return points;
 }
 
-function parseEbayPrices(html) {
+/** Parse eBay HTML for prices. If snapshotDate is set, use it for each point (Wayback); else use today. */
+function parseEbayPrices(html, snapshotDate = null) {
   const points = [];
-  const today = new Date().toISOString().slice(0, 10);
-  // eBay often has s-item__price or similar
+  const dateStr = snapshotDate || new Date().toISOString().slice(0, 10);
   const priceMatches = html.matchAll(/\$\s*(\d+(?:\.\d+)?)\s*(?:CAD|USD|CAD\s*\/\s*USD)?/gi);
   const spanPrice = html.matchAll(/s-item__price[^>]*>[\s$]*(\d+(?:\.\d+)?)/g);
   const seen = new Set();
+  const url = snapshotDate ? EBAY_SOLD : EBAY_SOLD;
   for (const m of priceMatches) {
     const amount = Number(m[1]);
     if (amount >= 50 && amount <= 500 && !seen.has(amount)) {
       seen.add(amount);
-      points.push({ date: today, kind: 'sale', price: { amount, currency: 'USD' }, sourceId: 'ebay', url: EBAY_SOLD });
+      points.push({ date: dateStr, kind: 'sale', price: { amount, currency: 'USD' }, sourceId: 'ebay', url: EBAY_SOLD });
     }
   }
   for (const m of spanPrice) {
     const amount = Number(m[1]);
     if (amount >= 50 && amount <= 500 && !seen.has(amount)) {
       seen.add(amount);
-      points.push({ date: today, kind: 'sale', price: { amount, currency: 'USD' }, sourceId: 'ebay', url: EBAY_LISTINGS });
+      points.push({ date: dateStr, kind: 'sale', price: { amount, currency: 'USD' }, sourceId: 'ebay', url: EBAY_SOLD });
     }
   }
   return points;
 }
 
-async function getWaybackPoints() {
+/** Get Wayback CDX timestamps for a URL. Returns array of { timestamp, dateISO } sorted oldest first. */
+async function getWaybackSnapshotsForUrl(url, limit = 50) {
   const cdxUrl = new URL('https://web.archive.org/cdx/search/cdx');
-  cdxUrl.searchParams.set('url', 'arcteryx.com*bucket*hat*');
+  cdxUrl.searchParams.set('url', url);
   cdxUrl.searchParams.set('output', 'json');
-  cdxUrl.searchParams.set('fl', 'timestamp,original');
+  cdxUrl.searchParams.set('fl', 'timestamp');
   cdxUrl.searchParams.set('filter', 'statuscode:200');
-  cdxUrl.searchParams.set('collapse', 'digest');
-  cdxUrl.searchParams.set('limit', '100');
+  cdxUrl.searchParams.set('collapse', 'timestamp'); // one per day
+  cdxUrl.searchParams.set('limit', String(limit));
 
-  const raw = await fetchText(cdxUrl.toString());
-  const data = JSON.parse(raw);
+  const raw = await fetch(cdxUrl.toString(), {
+    headers: { 'user-agent': 'Mozilla/5.0 (compatible; vbh-tracker/1.0)' }
+  });
+  if (!raw.ok) throw new Error(`Wayback CDX HTTP ${raw.status}`);
+  const text = await raw.text();
+  if (!text.trimStart().startsWith('[')) throw new Error('Wayback CDX returned non-JSON');
+  const data = JSON.parse(text);
   const rows = data.slice(1) || [];
   const byDate = new Map();
-  for (const [ts, original] of rows) {
-    const date = `${ts.slice(0, 4)}-${ts.slice(4, 6)}-${ts.slice(6, 8)}`;
-    if (!byDate.has(date)) byDate.set(date, { date, url: `https://web.archive.org/web/${ts}/${original}` });
+  for (const [ts] of rows) {
+    if (!ts) continue;
+    const dateISO = `${ts.slice(0, 4)}-${ts.slice(4, 6)}-${ts.slice(6, 8)}`;
+    if (!byDate.has(dateISO)) byDate.set(dateISO, ts);
   }
-  return Array.from(byDate.values());
+  return Array.from(byDate.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([dateISO, timestamp]) => ({ timestamp, dateISO }));
+}
+
+/** Fetch eBay sold listings from Wayback snapshots to get (date, price) with real archive dates. */
+async function fetchEbayFromWayback(maxSnapshots = 15) {
+  const points = [];
+  let snapshots = [];
+  for (const tryUrl of [EBAY_SOLD, 'https://www.ebay.com/sch/i.html*']) {
+    try {
+      snapshots = await getWaybackSnapshotsForUrl(tryUrl, 100);
+      if (snapshots.length > 0) break;
+    } catch (e) {
+      if (tryUrl === EBAY_SOLD) console.warn('  Wayback CDX for eBay failed:', e?.message);
+    }
+  }
+  if (snapshots.length === 0) {
+    console.log('  No Wayback snapshots found for eBay URL.');
+    return points;
+  }
+  // Sample spread: oldest, newest, and evenly in between
+  const step = Math.max(1, Math.floor((snapshots.length - 1) / Math.max(1, maxSnapshots - 2)));
+  const indices = new Set([0]);
+  for (let i = step; i < snapshots.length; i += step) indices.add(i);
+  indices.add(snapshots.length - 1);
+  const sampled = snapshots.filter((_, i) => indices.has(i)).slice(0, maxSnapshots);
+
+  console.log(`  Found ${snapshots.length} Wayback snapshots for eBay; fetching ${sampled.length} for prices.`);
+  for (const { timestamp, dateISO } of sampled) {
+    try {
+      const waybackUrl = `https://web.archive.org/web/${timestamp}/${EBAY_SOLD}`;
+      const res = await fetch(waybackUrl, {
+        headers: { 'user-agent': 'Mozilla/5.0 (compatible; vbh-tracker/1.0)' }
+      });
+      if (!res.ok) continue;
+      const html = await res.text();
+      const parsed = parseEbayPrices(html, dateISO);
+      for (const pt of parsed) points.push(pt);
+    } catch {
+      // skip
+    }
+  }
+  return points;
 }
 
 async function main() {
@@ -117,7 +168,7 @@ async function main() {
 
   const newPoints = [];
   const seenKey = (pt) => `${pt.date}|${pt.sourceId}|${pt.price?.amount}`;
-  const existingKeys = new Set(supplementary.map(seenKey));
+  let existingKeys = new Set(supplementary.map(seenKey));
 
   console.log('Fetching Grailed...');
   try {
@@ -134,7 +185,7 @@ async function main() {
     console.warn('  Grailed failed:', e.message);
   }
 
-  console.log('Fetching eBay...');
+  console.log('Fetching eBay (live)...');
   try {
     const html = await fetchText(EBAY_SOLD);
     const ebay = parseEbayPrices(html);
@@ -144,12 +195,32 @@ async function main() {
         existingKeys.add(seenKey(pt));
       }
     }
-    console.log(`  eBay: ${ebay.length} price(s) found, ${newPoints.filter((p) => p.sourceId === 'ebay').length} new`);
+    console.log(`  eBay live: ${ebay.length} price(s) found.`);
   } catch (e) {
     console.warn('  eBay failed:', e.message);
   }
 
-  if (newPoints.length > 0) {
+  console.log('Fetching eBay from Wayback Machine (for dates)...');
+  let waybackEbay = [];
+  try {
+    waybackEbay = await fetchEbayFromWayback(15);
+    for (const pt of waybackEbay) {
+      if (!existingKeys.has(seenKey(pt))) {
+        newPoints.push(pt);
+        existingKeys.add(seenKey(pt));
+      }
+    }
+    console.log(`  eBay Wayback: ${waybackEbay.length} point(s) with snapshot dates.`);
+  } catch (e) {
+    console.warn('  eBay Wayback failed:', e.message);
+  }
+
+  const hasNewEbay = newPoints.some((p) => p.sourceId === 'ebay');
+  if (hasNewEbay) {
+    supplementary = supplementary.filter((p) => p.sourceId !== 'ebay');
+  }
+
+  if (newPoints.length > 0 || hasNewEbay) {
     const merged = [...supplementary, ...newPoints];
     merged.sort((a, b) => a.date.localeCompare(b.date) || (a.price?.amount ?? 0) - (b.price?.amount ?? 0));
     await fs.mkdir(path.dirname(SUPP_PATH), { recursive: true });

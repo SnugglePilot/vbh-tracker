@@ -225,9 +225,7 @@ function App() {
       </section>
 
       <footer className="footer">
-        <span className="muted">
-          Built for hat-obsessed people. Data updates via <code>npm run update:data</code>.
-        </span>
+        <span className="muted">Built for hat-obsessed people.</span>
       </footer>
     </div>
   )

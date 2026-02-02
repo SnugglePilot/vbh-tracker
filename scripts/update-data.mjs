@@ -122,6 +122,33 @@ async function loadSupplementaryPoints() {
   }
 }
 
+/** Spread points that share the same (sourceId, date) across consecutive days so the graph has a time spread. */
+function spreadSupplementaryDates(points) {
+  const byKey = new Map();
+  for (const pt of points) {
+    const key = `${pt.sourceId}|${pt.date}`;
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key).push(pt);
+  }
+  const out = [];
+  for (const [, group] of byKey) {
+    if (group.length <= 1) {
+      out.push(...group);
+      continue;
+    }
+    const baseDate = group[0].date;
+    const base = new Date(baseDate + 'T12:00:00Z');
+    group.sort((a, b) => (a.price?.amount ?? 0) - (b.price?.amount ?? 0));
+    for (let i = 0; i < group.length; i++) {
+      const d = new Date(base);
+      d.setUTCDate(d.getUTCDate() - (group.length - 1 - i));
+      const dateStr = d.toISOString().slice(0, 10);
+      out.push({ ...group[i], date: dateStr });
+    }
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date) || (a.price?.amount ?? 0) - (b.price?.amount ?? 0));
+}
+
 async function buildSeries({ includeWayback }) {
   const today = new Date();
   const todayISO = today.toISOString().slice(0, 10);
@@ -231,7 +258,8 @@ async function buildSeries({ includeWayback }) {
     }
   }
 
-  const supplementary = await loadSupplementaryPoints();
+  let supplementary = await loadSupplementaryPoints();
+  supplementary = spreadSupplementaryDates(supplementary);
   for (const pt of supplementary) {
     if (!pt?.date || !pt?.kind || !pt?.price?.amount || !pt?.sourceId || !pt?.url) continue;
     const currency = (pt.price.currency || 'USD').toUpperCase();
