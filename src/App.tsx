@@ -44,44 +44,51 @@ function useEChart(option: echarts.EChartsOption) {
   return ref
 }
 
+const SOURCE_COLORS: Record<string, string> = {
+  'arcteryx-ca': '#93c5fd',
+  grailed: '#fcd34d',
+  ebay: '#6ee7b7'
+}
+
 function App() {
-  const [showSale, setShowSale] = useState(true)
-  const [showMsrp, setShowMsrp] = useState(true)
+  const [visibleSources, setVisibleSources] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(data.sources.map((s) => [s.id, true]))
+  )
 
   const sourcesById = useMemo(() => Object.fromEntries(data.sources.map((s) => [s.id, s])), [])
 
-  const points = useMemo(() => {
-    // prefer CAD if present; otherwise fall back to original.
-    return data.series
-      .map((p) => ({
-        ...p,
-        y: p.priceCad?.amount ?? p.price.amount,
-        currency: p.priceCad?.amount != null ? 'CAD' : p.price.currency
-      }))
-      .filter((p) => (p.kind === 'sale' ? showSale : showMsrp))
-      .sort((a, b) => a.date.localeCompare(b.date))
-  }, [showSale, showMsrp])
-
-  const { saleSeries, msrpSeries } = useMemo(() => {
-    const sale: [string, number][] = []
-    const msrp: [string, number][] = []
-
-    for (const p of points) {
-      const tup: [string, number] = [p.date, p.y]
-      if (p.kind === 'sale') sale.push(tup)
-      if (p.kind === 'msrp') msrp.push(tup)
+  const pointsBySource = useMemo(() => {
+    const bySource: Record<string, Array<{ date: string; y: number; url: string }>> = {}
+    for (const p of data.series) {
+      const y = p.priceCad?.amount ?? p.price.amount
+      const sid = p.sourceId
+      if (!bySource[sid]) bySource[sid] = []
+      bySource[sid].push({ date: p.date, y, url: p.url })
     }
+    for (const sid of Object.keys(bySource)) {
+      bySource[sid].sort((a, b) => a.date.localeCompare(b.date))
+    }
+    return bySource
+  }, [])
 
-    return { saleSeries: sale, msrpSeries: msrp }
-  }, [points])
+  const seriesDataBySource = useMemo(() => {
+    const out: Record<string, [string, number][]> = {}
+    for (const [sid, pts] of Object.entries(pointsBySource)) {
+      out[sid] = pts.map((p) => [p.date, p.y])
+    }
+    return out
+  }, [pointsBySource])
+
+  const allDates = useMemo(() => {
+    const set = new Set<string>()
+    for (const pts of Object.values(pointsBySource)) for (const p of pts) set.add(p.date)
+    return Array.from(set).sort()
+  }, [pointsBySource])
 
   const domain = useMemo(() => {
-    const dates = points.map((p) => p.date)
-    return {
-      min: dates[0] ?? null,
-      max: dates[dates.length - 1] ?? null
-    }
-  }, [points])
+    if (allDates.length === 0) return { min: null as string | null, max: null as string | null }
+    return { min: allDates[0], max: allDates[allDates.length - 1] }
+  }, [allDates])
 
   const option = useMemo<echarts.EChartsOption>(() => {
     const currency = 'CAD'
@@ -92,55 +99,37 @@ function App() {
       const prettyDate = date ? format(parseISO(date), 'MMM d, yyyy') : ''
 
       const bullets = rows
+        .filter((r: any) => r.data?.[1] != null)
         .map((r: any) => {
-          const kind = r.seriesName
+          const name = r.seriesName
           const value = Number(r.data?.[1])
-          return `${kind}: <b>${value.toFixed(2)} ${currency}</b>`
+          return `${name}: <b>${value.toFixed(2)} ${currency}</b>`
         })
         .join('<br/>')
 
-      // Try to show at least one underlying source link for this date.
       const match = data.series.find((p) => p.date === date)
-      const source = match ? sourcesById[match.sourceId] : null
       const link = match?.url
-
-      const sourceLine = source ? `<br/><span class="tt-muted">Source: ${source.name}</span>` : ''
       const linkLine = link ? `<br/><a class="tt-link" href="${link}" target="_blank" rel="noreferrer">open listing</a>` : ''
 
-      return `<div class="tt">${prettyDate}<br/>${bullets}${sourceLine}${linkLine}</div>`
+      return `<div class="tt">${prettyDate}<br/>${bullets}${linkLine}</div>`
     }
 
     const series: echarts.SeriesOption[] = []
-
-    if (showSale) {
+    for (const src of data.sources) {
+      if (!visibleSources[src.id]) continue
+      const seriesData = seriesDataBySource[src.id]
+      if (!seriesData || seriesData.length === 0) continue
+      const color = SOURCE_COLORS[src.id] ?? 'rgba(255,255,255,0.8)'
       series.push({
-        name: 'Sale / current',
+        name: src.name,
         type: 'line',
         smooth: true,
-        showSymbol: false,
-        data: saleSeries,
+        showSymbol: true,
+        symbolSize: 6,
+        data: seriesData,
         emphasis: { focus: 'series' },
-        lineStyle: { width: 3, color: '#ff3b3b' },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(255, 59, 59, 0.35)' },
-            { offset: 1, color: 'rgba(255, 59, 59, 0.00)' }
-          ])
-        },
-        animationDuration: 900,
-        animationEasing: 'cubicOut'
-      })
-    }
-
-    if (showMsrp) {
-      series.push({
-        name: 'MSRP / retail',
-        type: 'line',
-        smooth: true,
-        showSymbol: false,
-        data: msrpSeries,
-        emphasis: { focus: 'series' },
-        lineStyle: { width: 2, type: 'dashed', color: '#ffd0d0' },
+        lineStyle: { width: 2.5, color },
+        itemStyle: { color },
         animationDuration: 900,
         animationEasing: 'cubicOut'
       })
@@ -173,7 +162,7 @@ function App() {
       },
       series
     }
-  }, [domain.max, domain.min, msrpSeries, saleSeries, showMsrp, showSale, sourcesById])
+  }, [domain.max, domain.min, seriesDataBySource, visibleSources])
 
   const chartRef = useEChart(option)
 
@@ -189,14 +178,23 @@ function App() {
 
       <section className="panel">
         <div className="controls">
-          <label className="toggle">
-            <input type="checkbox" checked={showSale} onChange={(e) => setShowSale(e.target.checked)} />
-            <span>Sale / current</span>
-          </label>
-          <label className="toggle">
-            <input type="checkbox" checked={showMsrp} onChange={(e) => setShowMsrp(e.target.checked)} />
-            <span>MSRP / retail</span>
-          </label>
+          {data.sources.map((s) => (
+            <label key={s.id} className="toggle">
+              <input
+                type="checkbox"
+                checked={visibleSources[s.id] !== false}
+                onChange={(e) =>
+                  setVisibleSources((prev) => ({ ...prev, [s.id]: e.target.checked }))
+                }
+              />
+              <span
+                className="sourceLegend"
+                style={{ color: SOURCE_COLORS[s.id] ?? 'rgba(255,255,255,0.8)' }}
+              >
+                {s.name}
+              </span>
+            </label>
+          ))}
         </div>
 
         <div ref={chartRef} className="chart" />

@@ -79,6 +79,21 @@ body {
   background: rgba(0, 0, 0, 0.15);
 }
 
+.sourceLegend {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sourceLegend::before {
+  content: "";
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+
 .toggle {
   display: inline-flex;
   gap: 8px;
