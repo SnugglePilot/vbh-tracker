@@ -7,6 +7,7 @@
     "dev": "vite",
     "update:data": "node scripts/update-data.mjs",
     "update:data:wayback": "node scripts/update-data.mjs --wayback",
+    "fetch:marketplace": "node scripts/fetch-marketplace.mjs",
     "prebuild": "npm run update:data",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

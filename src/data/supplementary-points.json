@@ -1,0 +1,142 @@
+[
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 50,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 59,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 65,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 72,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 73.46,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 80,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 85,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 88.15,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 99.99,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 116.99,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 129.99,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 149,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 150,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  },
+  {
+    "date": "2026-02-02",
+    "kind": "sale",
+    "price": {
+      "amount": 199.95,
+      "currency": "USD"
+    },
+    "sourceId": "ebay",
+    "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+  }
+]

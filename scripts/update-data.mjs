@@ -16,15 +16,34 @@ import path from 'node:path';
 
 const PRODUCT_NAME = "Veilance Bucket Hat";
 const COLOR = "Carmine";
-const SOURCE = {
-  id: 'chcm',
-  name: "C'H'C'M'",
-  url: 'https://chcmshop.com/collections/hats/products/veilance-bucket-hat-carmine',
+
+const ARCTERYX_SOURCE = {
+  id: 'arcteryx-ca',
+  name: "Arc'teryx (CA)",
+  url: 'https://arcteryx.com/ca/en/shop/bucket-hat-9477',
+  currency: 'CAD'
+};
+
+const GRAILED_SOURCE = {
+  id: 'grailed',
+  name: 'Grailed',
+  url: 'https://www.grailed.com/search?q=veilance+bucket+hat',
   currency: 'USD'
 };
 
+const EBAY_SOURCE = {
+  id: 'ebay',
+  name: 'eBay',
+  url: 'https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine',
+  currency: 'USD'
+};
+
+const SOURCES = [ARCTERYX_SOURCE, GRAILED_SOURCE, EBAY_SOURCE];
+const SOURCE = ARCTERYX_SOURCE;
+
 const ROOT = path.resolve(process.cwd());
 const OUT_PATH = path.join(ROOT, 'src', 'data', 'price-series.json');
+const SUPPLEMENTARY_PATH = path.join(ROOT, 'src', 'data', 'supplementary-points.json');
 
 function isoDateFromWaybackTimestamp(ts) {
   // ts: YYYYMMDDhhmmss
@@ -44,23 +63,25 @@ async function fetchText(url, init) {
 }
 
 function parsePriceFromHtml(html) {
-  // CHCM is Shopify. Their OpenGraph meta is reliable for the *current* price.
-  const ogAmount = html.match(/property="og:price:amount"\s+content="([0-9.]+)"/i)?.[1];
-  const ogCurrency = html.match(/property="og:price:currency"\s+content="([A-Z]{3})"/i)?.[1];
+  // Arc'teryx pages typically embed structured product data. Prefer JSON-LD when present.
+  // We'll look for an offers block containing price + priceCurrency.
 
-  // MSRP/regular price is often rendered as text; CHCM shows it as: "Regular price $ 225.00"
-  // We grab the first currency-looking amount AFTER the words "Regular price".
-  const regularBlock = html.match(/Regular price[\s\S]{0,200}?\$\s*([0-9,.]+)/i);
-  const regular = regularBlock?.[1] ? Number(regularBlock[1].replace(/,/g, '')) : null;
+  // 1) JSON-LD offers (best)
+  // e.g. "offers":{"@type":"Offer","priceCurrency":"CAD","price":"225.00" ...}
+  const jsonLdCurrency = html.match(/"priceCurrency"\s*:\s*"([A-Z]{3})"/i)?.[1];
+  const jsonLdPrice = html.match(/"price"\s*:\s*"?([0-9]+(?:\.[0-9]+)?)"?/i)?.[1];
 
-  // Sale/Current price (often same as og:price:amount)
-  const current = ogAmount ? Number(ogAmount) : null;
+  // 2) Fallback: visible formatted price like $225.00
+  const textPrice = html.match(/\$\s*([0-9]+(?:\.[0-9]{2})?)/)?.[1];
 
-  return {
-    current,
-    regular,
-    currency: ogCurrency || 'USD'
-  };
+  const currency = (jsonLdCurrency || 'CAD').toUpperCase();
+  const current = jsonLdPrice ? Number(jsonLdPrice) : (textPrice ? Number(textPrice) : null);
+
+  // Arc'teryx generally doesn't expose a separate MSRP vs sale in markup for full-price items.
+  // If they ever do, we can add detection for "highPrice" / "priceSpecification".
+  const regular = null;
+
+  return { current, regular, currency };
 }
 
 async function fxRate(dateISO, from, to) {
@@ -72,37 +93,45 @@ async function fxRate(dateISO, from, to) {
   return Number(rate);
 }
 
-async function getWaybackMonthlySnapshots(originalUrl, maxMonths = 48) {
+async function getWaybackAllSnapshots(originalUrl) {
   const cdxUrl = new URL('https://web.archive.org/cdx/search/cdx');
   cdxUrl.searchParams.set('url', originalUrl);
   cdxUrl.searchParams.set('output', 'json');
   cdxUrl.searchParams.set('fl', 'timestamp,statuscode');
   cdxUrl.searchParams.set('filter', 'statuscode:200');
+  // collapse identical content so we don't store duplicate points for identical renders
   cdxUrl.searchParams.set('collapse', 'digest');
 
   const raw = JSON.parse(await fetchText(cdxUrl.toString()));
   const rows = raw.slice(1); // header
 
-  // pick first snapshot per YYYYMM
-  const byMonth = new Map();
-  for (const [timestamp] of rows) {
-    const yyyymm = timestamp.slice(0, 6);
-    if (!byMonth.has(yyyymm)) byMonth.set(yyyymm, timestamp);
-  }
+  const timestamps = rows.map(([timestamp]) => timestamp).filter(Boolean);
+  timestamps.sort();
+  return timestamps;
+}
 
-  const months = [...byMonth.keys()].sort();
-  const tail = months.slice(Math.max(0, months.length - maxMonths));
-  return tail.map(m => byMonth.get(m));
+/** Load supplementary price points (Grailed, eBay, manual). Each item: { date, kind, price: { amount, currency }, sourceId, url } */
+async function loadSupplementaryPoints() {
+  try {
+    const raw = await fs.readFile(SUPPLEMENTARY_PATH, 'utf8');
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    if (e?.code === 'ENOENT') return [];
+    throw e;
+  }
 }
 
 async function buildSeries({ includeWayback }) {
   const today = new Date();
   const todayISO = today.toISOString().slice(0, 10);
 
-  const usdToCad = await fxRate(todayISO, 'USD', 'CAD');
-
   const html = await fetchText(SOURCE.url);
   const parsed = parsePriceFromHtml(html);
+
+  // Always display CAD. If the source is already CAD, rate=1 and we skip FX lookup.
+  const fxFrom = (parsed.currency || SOURCE.currency || 'CAD').toUpperCase();
+  const fxRateToCad = fxFrom === 'CAD' ? 1 : await fxRate(todayISO, fxFrom, 'CAD');
 
   const points = [];
 
@@ -110,8 +139,13 @@ async function buildSeries({ includeWayback }) {
     points.push({
       date: todayISO,
       kind: 'sale',
-      price: { amount: parsed.current, currency: parsed.currency },
-      priceCad: { amount: Number((parsed.current * usdToCad).toFixed(2)), fx: { pair: 'USD/CAD', rate: usdToCad, source: 'frankfurter.app', date: todayISO } },
+      price: { amount: parsed.current, currency: fxFrom },
+      priceCad: {
+        amount: Number((parsed.current * fxRateToCad).toFixed(2)),
+        ...(fxFrom === 'CAD'
+          ? {}
+          : { fx: { pair: `${fxFrom}/CAD`, rate: fxRateToCad, source: 'frankfurter.app', date: todayISO } })
+      },
       sourceId: SOURCE.id,
       url: SOURCE.url
     });
@@ -121,30 +155,41 @@ async function buildSeries({ includeWayback }) {
     points.push({
       date: todayISO,
       kind: 'msrp',
-      price: { amount: parsed.regular, currency: parsed.currency },
-      priceCad: { amount: Number((parsed.regular * usdToCad).toFixed(2)), fx: { pair: 'USD/CAD', rate: usdToCad, source: 'frankfurter.app', date: todayISO } },
+      price: { amount: parsed.regular, currency: fxFrom },
+      priceCad: {
+        amount: Number((parsed.regular * fxRateToCad).toFixed(2)),
+        ...(fxFrom === 'CAD'
+          ? {}
+          : { fx: { pair: `${fxFrom}/CAD`, rate: fxRateToCad, source: 'frankfurter.app', date: todayISO } })
+      },
       sourceId: SOURCE.id,
       url: SOURCE.url
     });
   }
 
   if (includeWayback) {
-    const snapshots = await getWaybackMonthlySnapshots(SOURCE.url);
+    let snapshots = [];
+    try {
+      snapshots = await getWaybackAllSnapshots(ARCTERYX_SOURCE.url);
+    } catch (e) {
+      console.warn('Wayback CDX unavailable (skipping historical snapshots):', e?.message || e);
+    }
 
     for (const ts of snapshots) {
       const dateISO = isoDateFromWaybackTimestamp(ts);
       let htmlSnap;
       try {
-        htmlSnap = await fetchText(`https://web.archive.org/web/${ts}/${SOURCE.url}`);
+        htmlSnap = await fetchText(`https://web.archive.org/web/${ts}/${ARCTERYX_SOURCE.url}`);
       } catch {
         continue;
       }
       const p = parsePriceFromHtml(htmlSnap);
       if (p.current == null && p.regular == null) continue;
 
+      const snapFrom = (p.currency || ARCTERYX_SOURCE.currency || 'CAD').toUpperCase();
       let rate;
       try {
-        rate = await fxRate(dateISO, 'USD', 'CAD');
+        rate = snapFrom === 'CAD' ? 1 : await fxRate(dateISO, snapFrom, 'CAD');
       } catch {
         // if no rate, skip
         continue;
@@ -154,11 +199,16 @@ async function buildSeries({ includeWayback }) {
         points.push({
           date: dateISO,
           kind: 'sale',
-          price: { amount: p.current, currency: p.currency || 'USD' },
-          priceCad: { amount: Number((p.current * rate).toFixed(2)), fx: { pair: 'USD/CAD', rate, source: 'frankfurter.app', date: dateISO } },
-          sourceId: SOURCE.id,
-          url: SOURCE.url,
-          wayback: { timestamp: ts }
+          price: { amount: p.current, currency: snapFrom },
+          priceCad: {
+            amount: Number((p.current * rate).toFixed(2)),
+            ...(snapFrom === 'CAD'
+              ? {}
+              : { fx: { pair: `${snapFrom}/CAD`, rate, source: 'frankfurter.app', date: dateISO } })
+          },
+          sourceId: ARCTERYX_SOURCE.id,
+      url: ARCTERYX_SOURCE.url,
+      wayback: { timestamp: ts }
         });
       }
 
@@ -166,14 +216,45 @@ async function buildSeries({ includeWayback }) {
         points.push({
           date: dateISO,
           kind: 'msrp',
-          price: { amount: p.regular, currency: p.currency || 'USD' },
-          priceCad: { amount: Number((p.regular * rate).toFixed(2)), fx: { pair: 'USD/CAD', rate, source: 'frankfurter.app', date: dateISO } },
-          sourceId: SOURCE.id,
-          url: SOURCE.url,
+          price: { amount: p.regular, currency: snapFrom },
+          priceCad: {
+            amount: Number((p.regular * rate).toFixed(2)),
+            ...(snapFrom === 'CAD'
+              ? {}
+              : { fx: { pair: `${snapFrom}/CAD`, rate, source: 'frankfurter.app', date: dateISO } })
+          },
+          sourceId: ARCTERYX_SOURCE.id,
+          url: ARCTERYX_SOURCE.url,
           wayback: { timestamp: ts }
         });
       }
     }
+  }
+
+  const supplementary = await loadSupplementaryPoints();
+  for (const pt of supplementary) {
+    if (!pt?.date || !pt?.kind || !pt?.price?.amount || !pt?.sourceId || !pt?.url) continue;
+    const currency = (pt.price.currency || 'USD').toUpperCase();
+    let rate = 1;
+    if (currency !== 'CAD') {
+      try {
+        rate = await fxRate(pt.date, currency, 'CAD');
+      } catch {
+        continue;
+      }
+    }
+    points.push({
+      date: pt.date,
+      kind: pt.kind === 'msrp' ? 'msrp' : 'sale',
+      price: { amount: pt.price.amount, currency },
+      priceCad: {
+        amount: Number((pt.price.amount * rate).toFixed(2)),
+        ...(currency === 'CAD' ? {} : { fx: { pair: `${currency}/CAD`, rate, source: 'frankfurter.app', date: pt.date } })
+      },
+      sourceId: pt.sourceId,
+      url: pt.url,
+      ...(pt.wayback ? { wayback: pt.wayback } : {})
+    });
   }
 
   // de-dupe exact (date+kind+amount+source)
@@ -197,11 +278,11 @@ async function buildSeries({ includeWayback }) {
       currencyDisplay: 'CAD',
       notes: [
         `This tracker focuses on the ${PRODUCT_NAME} in the ${COLOR} colour.`,
-        'Historical points may be sourced from Web Archive snapshots when available.',
-        'Prices are converted to CAD using historical FX rates (USD→CAD) for the capture date.'
+        'Historical points may be sourced from Arc\'teryx (retail), Web Archive snapshots, Grailed, and eBay (resale).',
+        'Prices are displayed in CAD; non-CAD source prices are converted using historical FX for the capture date.'
       ]
     },
-    sources: [SOURCE],
+    sources: SOURCES,
     series: deduped
   };
 }
