@@ -55,8 +55,6 @@ function App() {
     Object.fromEntries(data.sources.map((s) => [s.id, true]))
   )
 
-  const sourcesById = useMemo(() => Object.fromEntries(data.sources.map((s) => [s.id, s])), [])
-
   const pointsBySource = useMemo(() => {
     const bySource: Record<string, Array<{ date: string; y: number; url: string }>> = {}
     for (const p of data.series) {
