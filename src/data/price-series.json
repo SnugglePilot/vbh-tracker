@@ -283,6 +283,25 @@
       "date": "2026-02-02",
       "kind": "sale",
       "price": {
+        "amount": 199.95,
+        "currency": "USD"
+      },
+      "priceCad": {
+        "amount": 272.85,
+        "fx": {
+          "pair": "USD/CAD",
+          "rate": 1.3646,
+          "source": "frankfurter.app",
+          "date": "2026-02-02"
+        }
+      },
+      "sourceId": "ebay",
+      "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+    },
+    {
+      "date": "2026-02-03",
+      "kind": "sale",
+      "price": {
         "amount": 225,
         "currency": "CAD"
       },
@@ -291,25 +310,6 @@
       },
       "sourceId": "arcteryx-ca",
       "url": "https://arcteryx.com/ca/en/shop/bucket-hat-9477"
-    },
-    {
-      "date": "2026-02-02",
-      "kind": "sale",
-      "price": {
-        "amount": 199.95,
-        "currency": "USD"
-      },
-      "priceCad": {
-        "amount": 270.43,
-        "fx": {
-          "pair": "USD/CAD",
-          "rate": 1.3525,
-          "source": "frankfurter.app",
-          "date": "2026-02-02"
-        }
-      },
-      "sourceId": "ebay",
-      "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
     }
   ]
 }
