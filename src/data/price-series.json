@@ -52,76 +52,57 @@
       "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
     },
     {
-      "date": "2026-01-21",
+      "date": "2026-01-25",
       "kind": "sale",
       "price": {
-        "amount": 59,
+        "amount": 80,
         "currency": "USD"
       },
       "priceCad": {
-        "amount": 81.38,
-        "fx": {
-          "pair": "USD/CAD",
-          "rate": 1.3793,
-          "source": "frankfurter.app",
-          "date": "2026-01-21"
-        }
-      },
-      "sourceId": "ebay",
-      "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
-    },
-    {
-      "date": "2026-01-22",
-      "kind": "sale",
-      "price": {
-        "amount": 65,
-        "currency": "USD"
-      },
-      "priceCad": {
-        "amount": 89.79,
-        "fx": {
-          "pair": "USD/CAD",
-          "rate": 1.3814,
-          "source": "frankfurter.app",
-          "date": "2026-01-22"
-        }
-      },
-      "sourceId": "ebay",
-      "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
-    },
-    {
-      "date": "2026-01-24",
-      "kind": "sale",
-      "price": {
-        "amount": 73.46,
-        "currency": "USD"
-      },
-      "priceCad": {
-        "amount": 101.1,
+        "amount": 110.1,
         "fx": {
           "pair": "USD/CAD",
           "rate": 1.3763,
           "source": "frankfurter.app",
-          "date": "2026-01-24"
+          "date": "2026-01-25"
         }
       },
       "sourceId": "ebay",
       "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
     },
     {
-      "date": "2026-01-28",
+      "date": "2026-01-27",
       "kind": "sale",
       "price": {
-        "amount": 99.99,
+        "amount": 88.15,
         "currency": "USD"
       },
       "priceCad": {
-        "amount": 135.63,
+        "amount": 120.57,
         "fx": {
           "pair": "USD/CAD",
-          "rate": 1.3564,
+          "rate": 1.3678,
           "source": "frankfurter.app",
-          "date": "2026-01-28"
+          "date": "2026-01-27"
+        }
+      },
+      "sourceId": "ebay",
+      "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+    },
+    {
+      "date": "2026-01-29",
+      "kind": "sale",
+      "price": {
+        "amount": 116.99,
+        "currency": "USD"
+      },
+      "priceCad": {
+        "amount": 158.22,
+        "fx": {
+          "pair": "USD/CAD",
+          "rate": 1.3524,
+          "source": "frankfurter.app",
+          "date": "2026-01-29"
         }
       },
       "sourceId": "ebay",
@@ -147,7 +128,26 @@
       "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
     },
     {
-      "date": "2026-03-25",
+      "date": "2026-01-31",
+      "kind": "sale",
+      "price": {
+        "amount": 149,
+        "currency": "USD"
+      },
+      "priceCad": {
+        "amount": 201.52,
+        "fx": {
+          "pair": "USD/CAD",
+          "rate": 1.3525,
+          "source": "frankfurter.app",
+          "date": "2026-01-31"
+        }
+      },
+      "sourceId": "ebay",
+      "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
+    },
+    {
+      "date": "2026-03-26",
       "kind": "sale",
       "price": {
         "amount": 225,
