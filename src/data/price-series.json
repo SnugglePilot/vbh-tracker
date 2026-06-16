@@ -299,14 +299,14 @@
       "url": "https://www.ebay.com/sch/i.html?_nkw=veilance+bucket+hat+carmine&_sacat=0&LH_Sold=1&LH_Complete=1"
     },
     {
-      "date": "2026-05-26",
+      "date": "2026-06-16",
       "kind": "sale",
       "price": {
-        "amount": 225,
+        "amount": 157.5,
         "currency": "CAD"
       },
       "priceCad": {
-        "amount": 225
+        "amount": 157.5
       },
       "sourceId": "arcteryx-ca",
       "url": "https://arcteryx.com/ca/en/shop/bucket-hat-9477"
